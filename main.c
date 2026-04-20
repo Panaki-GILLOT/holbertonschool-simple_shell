@@ -1,35 +1,80 @@
 #include "shell.h"
 
 /**
- * main - simple shell entry point
- * @ac: argument count
- * @av: argument vector
- * @env: environment variables
+ * handle_builtins - checks and executes builtin commands
+ * @args: argument array
+ * @line: input line buffer
+ * @env: environment variables array
  *
- * Description: reads user input, executes commands using PATH,
- * handles builtins (exit, env), and manages child processes.
- * Prints error messages matching /bin/sh format.
+ * Return: 1 if builtin was handled, 0 otherwise
+ */
+static int handle_builtins(char **args, char *line, char **env)
+{
+	if (strcmp(args[0], "exit") == 0)
+		builtin_exit(args, line);
+	if (strcmp(args[0], "env") == 0)
+	{
+		builtin_env(env);
+		return (1);
+	}
+	return (0);
+}
+
+/**
+ * process_line - parses and executes one input line
+ * @line: input string to process
+ * @av: shell argument vector (for error messages)
+ * @env: environment variables array
+ * @line_count: current line number
+ *
+ * Return: void
+ */
+static void process_line(char *line, char **av, char **env, int line_count)
+{
+	char **args;
+	char *path;
+
+	args = split_line(line);
+	if (!args || !args[0])
+	{
+		free(args);
+		return;
+	}
+	if (handle_builtins(args, line, env))
+	{
+		free(args);
+		return;
+	}
+	path = find_path(args[0], env);
+	if (!path)
+	{
+		fprintf(stderr, "%s: %d: %s: not found\n",
+			av[0], line_count, args[0]);
+		free(args);
+		return;
+	}
+	execute_command(args, path, env, av[0], line_count, line);
+	free(path);
+	free(args);
+}
+
+/**
+ * run_shell - main shell loop, reads and dispatches commands
+ * @av: argument vector of the shell process
+ * @env: environment variables array
  *
  * Return: 0 on success
  */
-int main(int ac, char **av, char **env)
+static int run_shell(char **av, char **env)
 {
 	char *line = NULL;
 	size_t len = 0;
-	char **args;
-	char *path;
-	pid_t pid;
-	int status;
 	int line_count = 0;
-	int i;
-
-	(void)ac;
 
 	while (1)
 	{
 		if (isatty(STDIN_FILENO))
 			write(STDOUT_FILENO, "($) ", 4);
-
 		if (getline(&line, &len, stdin) == -1)
 		{
 			if (isatty(STDIN_FILENO))
@@ -37,79 +82,24 @@ int main(int ac, char **av, char **env)
 			free(line);
 			return (0);
 		}
-
 		line_count++;
 		line[strcspn(line, "\n")] = '\0';
-
-		args = split_line(line);
-		if (!args || !args[0])
-		{
-			free(args);
-			continue;
-		}
-
-		/* BUILTIN: exit */
-		if (strcmp(args[0], "exit") == 0)
-		{
-			free(args);
-			free(line);
-			exit(0);
-		}
-
-		/* BUILTIN: env */
-		if (strcmp(args[0], "env") == 0)
-		{
-			for (i = 0; env[i]; i++)
-				printf("%s\n", env[i]);
-			free(args);
-			continue;
-		}
-
-		/* PATH resolution */
-		path = find_path(args[0], env);
-
-		/* Command not found: print error before fork */
-		if (!path)
-		{
-			fprintf(stderr, "%s: %d: %s: not found\n",
-				av[0], line_count, args[0]);
-			free(args);
-			continue;
-		}
-
-		/* Fork and execute */
-		pid = fork();
-		if (pid == -1)
-		{
-			perror("fork");
-			free(path);
-			free(args);
-			continue;
-		}
-
-		if (pid == 0)
-		{
-			/* Child process */
-			if (execve(path, args, env) == -1)
-			{
-				fprintf(stderr, "%s: %d: %s: not found\n",
-					av[0], line_count, args[0]);
-				free(path);
-				free(args);
-				free(line);
-				_exit(127);
-			}
-		}
-		else
-		{
-			/* Parent process */
-			waitpid(pid, &status, 0);
-		}
-
-		free(path);
-		free(args);
+		process_line(line, av, env, line_count);
 	}
-
 	free(line);
 	return (0);
+}
+
+/**
+ * main - simple shell entry point
+ * @ac: argument count
+ * @av: argument vector
+ * @env: environment variables
+ *
+ * Return: 0 on success
+ */
+int main(int ac, char **av, char **env)
+{
+	(void)ac;
+	return (run_shell(av, env));
 }

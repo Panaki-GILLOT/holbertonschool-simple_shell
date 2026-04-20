@@ -1,52 +1,40 @@
 #include "shell.h"
 
 /**
- * find_path - searches for a command in PATH directories
- * @command: command name to locate
+ * get_path_env - retrieves PATH value from environment
  * @env: environment variables array
  *
- * Description: builds full path for a command by iterating
- * through PATH directories and checking execution permission.
- *
- * Return: full path to command if found, NULL otherwise
+ * Return: pointer to PATH value, NULL if not found
  */
-char *find_path(char *command, char **env)
+static char *get_path_env(char **env)
 {
-	char *path = NULL;
-	char *path_copy;
-	char *dir;
-	char *full_path;
 	int i = 0;
 
-	if (!command || !env)
-		return (NULL);
-
-	/* If command contains '/', use it directly */
-	if (strchr(command, '/'))
-	{
-		if (access(command, X_OK) == 0)
-			return (strdup(command));
-		return (NULL);
-	}
-
-	/* Find PATH in environment */
 	while (env[i])
 	{
 		if (strncmp(env[i], "PATH=", 5) == 0)
-		{
-			path = env[i] + 5;
-			break;
-		}
+			return (env[i] + 5);
 		i++;
 	}
+	return (NULL);
+}
 
-	if (!path || *path == '\0')
-		return (NULL);
+/**
+ * search_in_path - searches command in each PATH directory
+ * @command: command name to locate
+ * @path: PATH value string
+ *
+ * Return: full path if found, NULL otherwise
+ */
+static char *search_in_path(char *command, char *path)
+{
+	char *path_copy;
+	char *dir;
+	char *full_path;
 
 	path_copy = strdup(path);
 	if (!path_copy)
 		return (NULL);
-
 	dir = strtok(path_copy, ":");
 	while (dir)
 	{
@@ -65,7 +53,34 @@ char *find_path(char *command, char **env)
 		free(full_path);
 		dir = strtok(NULL, ":");
 	}
-
 	free(path_copy);
 	return (NULL);
+}
+
+/**
+ * find_path - searches for a command in PATH directories
+ * @command: command name to locate
+ * @env: environment variables array
+ *
+ * Description: builds full path for a command by iterating
+ * through PATH directories and checking execution permission.
+ *
+ * Return: full path to command if found, NULL otherwise
+ */
+char *find_path(char *command, char **env)
+{
+	char *path;
+
+	if (!command || !env)
+		return (NULL);
+	if (strchr(command, '/'))
+	{
+		if (access(command, X_OK) == 0)
+			return (strdup(command));
+		return (NULL);
+	}
+	path = get_path_env(env);
+	if (!path || *path == '\0')
+		return (NULL);
+	return (search_in_path(command, path));
 }

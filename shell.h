@@ -14,14 +14,11 @@
  * Description: contains function prototypes, builtins and
  * standard libraries used by the simple shell program.
  */
-
-/* Core functions */
 char **split_line(char *line);
 char *find_path(char *command, char **env);
-extern char **environ;
-
-/* Builtins */
-int builtin_exit(char **args, char *line);
 int builtin_env(char **env);
+int builtin_exit(char **args, char *line);
+void execute_command(char **args, char *path, char **env,
+	char *av0, int line_count, char *line);
 
 #endif /* SHELL_H */
