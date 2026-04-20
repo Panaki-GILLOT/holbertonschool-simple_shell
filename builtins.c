@@ -15,6 +15,22 @@ int builtin_exit(char **args, char *line)
 }
 
 /**
+ * _putstr - writes a string to a file descriptor
+ * @str: string to write
+ * @fd: file descriptor
+ *
+ * Return: void
+ */
+static void _putstr(char *str, int fd)
+{
+	while (*str)
+	{
+		write(fd, str, 1);
+		str++;
+	}
+}
+
+/**
  * builtin_env - prints the current environment
  * @env: environment variables array
  *
@@ -26,7 +42,8 @@ int builtin_env(char **env)
 
 	while (env[i])
 	{
-		printf("%s\n", env[i]);
+		_putstr(env[i], STDOUT_FILENO);
+		write(STDOUT_FILENO, "\n", 1);
 		i++;
 	}
 	return (0);

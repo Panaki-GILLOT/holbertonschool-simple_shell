@@ -21,9 +21,40 @@ static int handle_builtins(char **args, char *line, char **env)
 }
 
 /**
+ * print_not_found - prints command not found error to stderr
+ * @av0: shell name
+ * @line_count: current line number
+ * @cmd: command not found
+ *
+ * Return: void
+ */
+static void print_not_found(char *av0, int line_count, char *cmd)
+{
+	char num[12];
+	int i = 0;
+	int tmp;
+
+	tmp = line_count;
+	if (tmp == 0)
+		num[i++] = '0';
+	while (tmp > 0)
+	{
+		num[i++] = '0' + (tmp % 10);
+		tmp /= 10;
+	}
+	num[i] = '\0';
+	write(STDERR_FILENO, av0, strlen(av0));
+	write(STDERR_FILENO, ": ", 2);
+	write(STDERR_FILENO, num, strlen(num));
+	write(STDERR_FILENO, ": ", 2);
+	write(STDERR_FILENO, cmd, strlen(cmd));
+	write(STDERR_FILENO, ": not found\n", 12);
+}
+
+/**
  * process_line - parses and executes one input line
  * @line: input string to process
- * @av: shell argument vector (for error messages)
+ * @av: shell argument vector
  * @env: environment variables array
  * @line_count: current line number
  *
@@ -48,8 +79,7 @@ static void process_line(char *line, char **av, char **env, int line_count)
 	path = find_path(args[0], env);
 	if (!path)
 	{
-		fprintf(stderr, "%s: %d: %s: not found\n",
-			av[0], line_count, args[0]);
+		print_not_found(av[0], line_count, args[0]);
 		free(args);
 		return;
 	}
@@ -59,7 +89,7 @@ static void process_line(char *line, char **av, char **env, int line_count)
 }
 
 /**
- * run_shell - main shell loop, reads and dispatches commands
+ * run_shell - main shell loop
  * @av: argument vector of the shell process
  * @env: environment variables array
  *
