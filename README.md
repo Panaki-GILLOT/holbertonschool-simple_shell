@@ -2,9 +2,15 @@
 
 A simple UNIX command line interpreter written in C, reproducing the basic behavior of `/bin/sh`.
 
+---
+
 ## Description
 
-`hsh` is a simple shell written in C as part of the Holberton School curriculum. It reads commands from standard input (interactive or non-interactive), searches for them in the `PATH`, and executes them using `fork()` and `execve()`.
+`hsh` is a simple shell written in C as part of the Holberton School curriculum.
+It reads commands from standard input (interactive or non-interactive), searches
+for them in the `PATH`, and executes them using `fork()` and `execve()`.
+
+---
 
 ## Features
 
@@ -16,16 +22,22 @@ A simple UNIX command line interpreter written in C, reproducing the basic behav
 - Betty style compliant
 - No memory leaks
 
+---
+
 ## Requirements
 
 - Ubuntu 20.04 LTS
 - GCC with flags: `-Wall -Werror -Wextra -pedantic -std=gnu89`
+
+---
 
 ## Compilation
 
 ```bash
 gcc -Wall -Werror -Wextra -pedantic -std=gnu89 *.c -o hsh
 ```
+
+---
 
 ## Usage
 
@@ -51,7 +63,11 @@ $ cat commands.txt | ./hsh
 hsh main.c shell.h find_path.c split_line.c builtins.c execute.c
 ```
 
+---
+
 ## Error handling
+
+The shell prints errors using the program name as it was called:
 
 ```bash
 $ echo "qwerty" | ./hsh
@@ -60,6 +76,24 @@ $ echo "qwerty" | ./hsh
 $ echo "qwerty" | ./././hsh
 ./././hsh: 1: qwerty: not found
 ```
+
+---
+
+## How it works
+
+The shell runs a continuous loop:
+
+1. Display the prompt `($)` if in interactive mode (`isatty`)
+2. Read the input line with `getline()`
+3. Parse the line into an argument array with `strtok()`
+4. Check if the command is a built-in (`exit`, `env`)
+5. Search for the command in `PATH` using `access()`
+6. Create a child process with `fork()`
+7. Execute the command in the child with `execve()`
+8. Wait for the child to finish with `waitpid()`
+9. Repeat
+
+---
 
 ## Flowchart
 
@@ -76,7 +110,7 @@ flowchart TD
   BUILTIN -->|exit| EXIT_CMD([exit])
   BUILTIN -->|env| ENV[Print environment]
   ENV --> ISATTY
-  BUILTIN -->|no| FIND[Search in PATH]
+  BUILTIN -->|no| FIND[Search in PATH - access]
   FIND -->|not found| ERR[Print error - not found]
   ERR --> ISATTY
   FIND -->|found| FORK[fork]
@@ -85,6 +119,8 @@ flowchart TD
   EXEC --> WAIT
   WAIT --> ISATTY
 ```
+
+---
 
 ## File structure
 
@@ -99,9 +135,39 @@ flowchart TD
 | `man_1_simple_shell` | Manual page |
 | `AUTHORS` | List of contributors |
 
+---
+
+## Testing
+
+### Betty style check
+
+```bash
+betty *.c *.h
+```
+
+### Memory leaks check
+
+```bash
+valgrind --leak-check=full ./hsh
+echo "ls" | valgrind --leak-check=full ./hsh
+```
+
+### Manual tests
+
+```bash
+echo "/bin/ls" | ./hsh
+echo "qwerty" | ./hsh
+echo "" | ./hsh
+echo "/bin/ls -l" | ./hsh
+```
+
+---
+
 ## Authors
 
-See [AUTHORS](./AUTHORS)
+Panaki Gillot <gillotpanaki@gmail.com>
+
+---
 
 ## License
 
